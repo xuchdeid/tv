@@ -2,6 +2,7 @@ package com.koalcat.tv
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.os.Message
 import android.view.KeyEvent
@@ -28,21 +29,27 @@ class WebViewFragment : BrandedFragment() {
         val view = inflater.inflate(R.layout.fragment_webview, container, false)
         this.webView = view.findViewById(R.id.webview)
         this.progress = view.findViewById(R.id.progress)
-        webView.settings?.cacheMode = WebSettings.LOAD_DEFAULT
-        webView.settings?.javaScriptEnabled = true
-        webView.settings?.domStorageEnabled = true
-        webView.settings?.databaseEnabled = true
-        webView.settings?.allowFileAccess = true
-        webView.settings?.setAppCacheEnabled(true)
-        webView.settings?.setSupportMultipleWindows(true)
+        webView.settings.cacheMode = WebSettings.LOAD_DEFAULT
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.settings.databaseEnabled = true
+        webView.settings.allowFileAccess = true
+        webView.settings.loadWithOverviewMode = true
+        webView.settings.useWideViewPort = true
+        webView.settings.layoutAlgorithm = WebSettings.LayoutAlgorithm.NARROW_COLUMNS
+
+        webView.settings.setAppCacheEnabled(true)
+        webView.settings.setSupportMultipleWindows(true)
+        webView.settings.pluginState = WebSettings.PluginState.ON
+        //webView.settings.javaScriptCanOpenWindowsAutomatically = true
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
-                request: WebResourceRequest?
+                request: String?
             ): Boolean {
                 val movie = Movie()
-                movie.videoUrl = request?.url.toString()
+                movie.videoUrl = request
                 val intent = Intent(activity, DetailsActivity::class.java)
                 intent.putExtra(DetailsActivity.MOVIE, movie)
                 val bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
@@ -62,6 +69,7 @@ class WebViewFragment : BrandedFragment() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                webView.loadUrl("javascript:window.devicePixelRatio=1")
                 progress.visibility = View.GONE
             }
         }
@@ -97,11 +105,11 @@ class WebViewFragment : BrandedFragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        setDesktopMode(true)
+        setDesktopMode()
         view?.setOnKeyListener { _, keyCode, _ ->
             if (keyCode == KeyEvent.KEYCODE_BACK) {
-                if (webView!!.canGoBack()) {
-                    webView!!.goBack()
+                if (webView.canGoBack()) {
+                    webView.goBack()
                     true
                 } else {
                     false
@@ -112,14 +120,15 @@ class WebViewFragment : BrandedFragment() {
         }
         mSelectedMovie = activity?.intent?.getSerializableExtra(DetailsActivity.MOVIE) as Movie
         if (mSelectedMovie != null) {
-            webView?.loadUrl(mSelectedMovie?.videoUrl)
+            webView.loadUrl(mSelectedMovie?.videoUrl)
         } else {
             val intent = Intent(activity, MainActivity::class.java)
             startActivity(intent)
         }
     }
 
-    fun setDesktopMode(enabled: Boolean) {
+    fun setDesktopMode() {
+        val enabled = true
         val webSettings: WebSettings = webView.settings
         val newUserAgent: String
         newUserAgent = if (enabled) {
@@ -134,6 +143,12 @@ class WebViewFragment : BrandedFragment() {
         webSettings.loadWithOverviewMode = enabled
         webSettings.setSupportZoom(enabled)
         webSettings.builtInZoomControls = enabled
+        webSettings.displayZoomControls = false
+        webView.scrollBarStyle = WebView.SCROLLBARS_OUTSIDE_OVERLAY
+        webView.isScrollbarFadingEnabled = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
     }
 
 }
